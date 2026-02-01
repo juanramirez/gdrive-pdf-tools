@@ -169,9 +169,9 @@ for f in "${PDFS[@]}"; do
       -limit memory 512MiB \
       -limit map 1GiB \
       -limit disk 4GiB \
-      -density 200 \
+      -density "$DENSITY" \
       "$f" \
-      -deskew 40% \
+      -deskew "$DESKEW" \
       -quality 100 \
       "$out"; then
     echo "$WARN_ICON Deskew failed, copying original: $rel"
