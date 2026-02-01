@@ -14,56 +14,58 @@ ORIG="$BASE/originals"
 FIXED="$BASE/fixed"
 
 # =====================
+# LOG_ICONS
+# =====================
+DOWN_ARROW_ICON="⬇"
+ERROR_ICON="❌"
+FOLDER_ICON="📂"
+#INFO_ICON="ℹ️"
+OK_ICON="✅"
+MAGNIFYER_ICON="🔎"
+PADLOCK_ICON="🔒"
+PADLOCK_WITH_KEY_ICON="🔐"
+RIGHT_ARROW_ICON="→"
+SHEET_ICON="📄"
+SWEEP_ICON="🧹"
+TOOLS_ICON="🛠"
+UP_ARROW_ICON="⬆"
+WARN_ICON="⚠️"
+
+# =====================
 # CLI ARGUMENTS
 # =====================
-FORCE = 0
+ON_ENCRYPTED="skip"   # skip | fail | ask
+FORCE=0
 
 for arg in "$@"; do
   case "$arg" in
     --force)
       FORCE=1
       ;;
-    --on-encripted=*)
+    --on-encrypted=*)
       ON_ENCRYPTED="${arg#*=}"
       ;;
     *)
-      echo "❌ Unknown argument: $arg"
+      echo "$ERROR_ICON Unknown argument: $arg"
       exit 1
       ;;
   esac
 done
 
-# =====================
-# ENCRYPTED PDFS BEHAVIOUR
-# =====================
-ON_ENCRYPTED="skip"   # skip | fail | ask
-
-for arg in "$@"; do
-  case "$arg" in
-    --on-encrypted=*)
-      ON_ENCRYPTED="${arg#*=}"
-      ;;
-  esac
-done
+if [[ $FORCE -eq 1 ]]; then
+  echo "$WARN_ICON FORCE mode enabled: all PDFs will be reprocessed"
+fi
 
 if [[ ! "$ON_ENCRYPTED" =~ ^(skip|fail|ask)$ ]]; then
-  echo "❌ Invalid value for --on-encrypted. Use skip|fail|ask"
+  echo "$ERROR_ICON Invalid value for --on-encrypted. Use skip|fail|ask"
   exit 1
 fi
 
-# =====================
-# FORCE MODE
-# =====================
-FORCE=0
-if [[ "${1:-}" == "--force" ]]; then
-  FORCE=1
-  echo "⚠️ FORCE mode enabled: all PDFs will be reprocessed"
-fi
 
 # =====================
 # SELECT SOURCE FOLDER
 # =====================
-echo "📂 Select source folder (shared with you):"
+echo "$FOLDER_ICON Select source folder (shared with you):"
 SRC_FOLDER=$(
   rclone lsf gdrive: \
     --dirs-only \
@@ -73,21 +75,21 @@ SRC_FOLDER=$(
 )
 
 if [[ -z "$SRC_FOLDER" ]]; then
-  echo "❌ No folder selected. Aborting."
+  echo "ERROR No folder selected. Aborting."
   exit 1
 fi
 
 SRC="gdrive:$SRC_FOLDER"
 DST="gdrive:$SRC_FOLDER (fixed)"
 
-echo "✔ Selected: $SRC_FOLDER"
-echo "📁 Destination: $SRC_FOLDER (fixed)"
+echo "$OK_ICON Selected: $SRC_FOLDER"
+echo "$FOLDER_ICON Destination: $SRC_FOLDER (fixed)"
 
 # =====================
 # CLEAN LOCAL STATE
 # =====================
 if [[ $FORCE -eq 1 ]]; then
-  echo "🧹 Force mode: removing previous local data..."
+  echo "$SWEEP_ICON Force mode: removing previous local data..."
   rm -rf "$BASE"
 fi
 
@@ -97,7 +99,7 @@ mkdir -p "$TMP" "$ORIG/$SRC_FOLDER" "$FIXED/$SRC_FOLDER"
 # =====================
 # DOWNLOAD PDFs (RECURSIVE)
 # =====================
-echo "⬇ Downloading PDFs..."
+echo "$DOWN_ARROW_ICON Downloading PDFs..."
 rclone copy "$SRC" "$ORIG/$SRC_FOLDER" \
   --drive-shared-with-me \
   --progress \
@@ -107,7 +109,7 @@ rclone copy "$SRC" "$ORIG/$SRC_FOLDER" \
 # =====================
 # DESKEW (BULLETPROOF)
 # =====================
-echo "🛠 Deskewing PDFs (bulletproof)..."
+echo "$TOOLS_ICON Deskewing PDFs (bulletproof)..."
 
 export MAGICK_MEMORY_LIMIT=512MiB
 export MAGICK_MAP_LIMIT=1GiB
@@ -118,7 +120,7 @@ mapfile -t PDFS < <(
 )
 
 for f in "${PDFS[@]}"; do
-  rel="${f#$ORIG/$SRC_FOLDER/}"
+  rel="${f#"$ORIG"/"$SRC_FOLDER"/}"
   out="$FIXED/$SRC_FOLDER/$rel"
   mkdir -p "$(dirname "$out")"
 
@@ -127,21 +129,21 @@ for f in "${PDFS[@]}"; do
   fi
 
   if pdfinfo "$f" 2>/dev/null | grep -q "Encrypted: yes"; then
-  case "$ENCRYPTED_MODE" in
+    case "$ON_ENCRYPTED" in
     skip)
-      echo "🔒 Encrypted, skipped: $rel"
+      echo "$PADLOCK_ICON Encrypted, skipped: $rel"
       cp -n "$f" "$out"
       continue
       ;;
 
     fail)
-      echo "❌ Encrypted PDF found, aborting: $rel"
+      echo "$ERROR_ICON Encrypted PDF found, aborting: $rel"
       exit 2
       ;;
 
     ask)
-      echo "🔐 Encrypted PDF: $rel"
-      read -s -p "Password: " PDF_PASS
+      echo "$PADLOCK_WITH_KEY_ICON Encrypted PDF: $rel"
+      read -r -s -p "Password: " PDF_PASS
       echo
 
       if ! magick \
@@ -149,11 +151,11 @@ for f in "${PDFS[@]}"; do
         -limit memory 512MiB \
         -limit map 1GiB \
         -limit disk 4GiB \
-        -density 200 \
+        -density "$DENSITY" \
         "$f" \
-        -deskew 40% \
+        -deskew "$DESKEW" \
         "$out"; then
-        echo "⚠️ Wrong password or failed, copying original"
+        echo "$WARN_ICON Wrong password or failed, copying original"
         cp -n "$f" "$out"
       fi
       continue
@@ -161,7 +163,7 @@ for f in "${PDFS[@]}"; do
   esac
   fi
 
-  echo "  → Deskew: $rel"
+  echo "  $RIGHT_ARROW_ICON Deskew: $rel"
 
   if ! magick \
       -limit memory 512MiB \
@@ -172,7 +174,7 @@ for f in "${PDFS[@]}"; do
       -deskew 40% \
       -quality 100 \
       "$out"; then
-    echo "⚠️ Deskew failed, copying original: $rel"
+    echo "$WARN_ICON Deskew failed, copying original: $rel"
     cp -n "$f" "$out"
   fi
 done
@@ -180,18 +182,18 @@ done
 # =====================
 # OCR (ONLY FIXED PDFs)
 # =====================
-echo "🔎 OCR (Spanish)..."
+echo "$MAGNIFYER_ICON OCR (Spanish)..."
 
 mapfile -t PDFS_FIXED < <(
   find "$FIXED/$SRC_FOLDER" -type f -iname "*.pdf"
 )
 
 if [[ ${#PDFS_FIXED[@]} -eq 0 ]]; then
-  echo "📄 No PDFs to OCR."
+  echo "$SHEET_ICON No PDFs to OCR."
 else
   for f in "${PDFS_FIXED[@]}"; do
     tmp="${f%.pdf}.ocr.pdf"
-    echo "  → OCR: ${f#$FIXED/$SRC_FOLDER/}"
+    echo "  $RIGHT_ARROW_ICON OCR: ${f#"$FIXED"/"$SRC_FOLDER"/}"
     ocrmypdf --skip-text --language "$OCR_LANG" "$f" "$tmp"
     mv "$tmp" "$f"
   done
@@ -200,17 +202,17 @@ fi
 # =====================
 # ENSURE DESTINATION
 # =====================
-echo "📁 Ensuring destination folder exists..."
+echo "$FOLDER_ICON Ensuring destination folder exists..."
 rclone mkdir "$DST" || true
 
 # =====================
 # UPLOAD PROCESSED FILES
 # =====================
-echo "⬆ Uploading processed PDFs..."
+echo "$UP_ARROW_ICON Uploading processed PDFs..."
 rclone copy "$FIXED/$SRC_FOLDER" "$DST" \
   --progress \
   --log-file="$TMP/rclone_upload.log" \
   --log-level INFO
 
-echo "✅ Done."
+echo "$OK_ICON Done."
 
