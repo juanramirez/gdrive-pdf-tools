@@ -14,6 +14,26 @@ ORIG="$BASE/originals"
 FIXED="$BASE/fixed"
 
 # =====================
+# CLI ARGUMENTS
+# =====================
+FORCE = 0
+
+for arg in "$@"; do
+  case "$arg" in
+    --force)
+      FORCE=1
+      ;;
+    --on-encripted=*)
+      ON_ENCRYPTED="${arg#*=}"
+      ;;
+    *)
+      echo "❌ Unknown argument: $arg"
+      exit 1
+      ;;
+  esac
+done
+
+# =====================
 # ENCRYPTED PDFS BEHAVIOUR
 # =====================
 ON_ENCRYPTED="skip"   # skip | fail | ask
