@@ -1,0 +1,15 @@
+# Logs
+.log
+
+# Temp directories
+tmp/
+tmp_*/
+*.tmp
+
+# OS junk
+.DS_Store
+
+# Editor files
+*~
+
+old_autodeskew_drive_docs.sh
