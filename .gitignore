@@ -12,4 +12,7 @@ tmp_*/
 # Editor files
 *~
 
+# Real documents (just in case)
+*.pdf
+
 old_autodeskew_drive_docs.sh

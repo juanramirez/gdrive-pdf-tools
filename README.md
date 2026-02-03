@@ -14,3 +14,4 @@ A small collection of Bash tools to bulk-process PDFs stored in Google Drive.
 
 Small, composable, idempotent Unix-style tools.
 
+This project does not include any sample documents or real data.

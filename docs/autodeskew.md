@@ -2,7 +2,7 @@
 
 This script downloads PDFs from a selected Google Drive folder, applies:
 - deskew (rotation correction),
-- optional OCR,
+- OCR (skipping files that already contain text),
 - and uploads the processed files back to Drive,
 
 while being reasonably **safe, resumable, and automation-friendly**.
@@ -15,9 +15,10 @@ but it should work for any PDF collection.
 - 📂 Select a Google Drive folder interactively (using `fzf`)
 - ⬇️ Download PDFs recursively via `rclone`
 - 🛠 Deskew scanned PDFs using ImageMagick
-- 🔎 Run OCR on processed PDFs (via `ocrmypdf`)
+- 🔎 Run OCR on processed PDFs (via `ocrmypdf`, skipping files that already contain text)
 - 🔒 Configurable behaviour for encrypted PDFs (`skip`, `fail`, `ask`)
 - ♻️ Idempotent: already processed files are skipped unless forced
+- 📐 Adaptive image density based on PDF size to reduce memory usage
 - ⚠️ Optional `--force` mode to reprocess everything
 
 ## 🧩 Requirements
@@ -70,7 +71,7 @@ Run the script:
 1. Prompts you to select a Google Drive folder (owned by you or shared with you).
 2. Downloads all PDFs recursively using `rclone`.
 3. Applies deskew (rotation correction) using ImageMagick.
-4. Optionally runs OCR on the processed PDFs.
+4. Runs OCR on the processed PDFs (skipping files that already contain text).
 5. Uploads the results back to Google Drive into a `(fixed)` sibling folder.
 
 ## 🔁 Idempotency and safety
